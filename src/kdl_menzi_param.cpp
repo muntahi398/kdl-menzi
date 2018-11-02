@@ -3,6 +3,9 @@
 #include <sstream>
 #include <iostream>
 #include <urdf/model.h>
+//#include <tree.hpp>
+
+
 
 int main(int argc, char** argv)
 {
@@ -19,5 +22,27 @@ int main(int argc, char** argv)
       ROS_ERROR("Failed to construct kdl tree");
       return false;
    }
+
+unsigned int nj = my_tree.getNrOfJoints();
+unsigned int js = my_tree.getNrOfSegments();
+
+ROS_INFO("Failed to construct kdl tree");
+ROS_INFO("%d   ||  %d \n", nj,js);
+
+
+   KDL::Chain chain;
+//chain= 
+ if (!my_tree.getChain("base_link", "bucket", chain)){
+      ROS_ERROR("Failed to construct kdl chain");
+      return false;
+   }
+
+//robot_kin.getChain("base_link", "bucket", chain);
+ //  KDL::JntArray joint_pos(chain.getNrOfJoints());
+//  KDL::Frame cart_pos;
+//  KDL::ChainFkSolverPos_recursive fk_solver(chain);
+//  fk_solver.JntToCart(joint_pos, cart_pos);
+
+
 
 }
