@@ -11,7 +11,11 @@
 
 //#include <tree.hpp>
 
-
+void update_message(sensor_msgs::JointState &msg,
+                    const KDL::JntArray &joints) {
+	msg.header.stamp = ros::Time::now();
+	Eigen::Map<Eigen::VectorXd>(msg.position.data(), msg.position.size()) = joints.data;
+}
 
 int main(int argc, char** argv)
 {
@@ -36,17 +40,20 @@ int main(int argc, char** argv)
    ROS_INFO("NrOfJoints =%d   ||  NrOfSegments= %d \n", nj,js);
 
 
-   KDL::Chain chain;
+   KDL::Chain kdl_chain;
    //chain= 
-   if (!my_tree.getChain("base_link", "bucket", chain)){
+   if (!my_tree.getChain("base_link", "bucket", kdl_chain)){
       ROS_ERROR("Failed to construct kdl chain");
       return false;
    }
 
    //fk solver= 
-   KDL::ChainFkSolverPos_recursive fksolver = KDL::ChainFkSolverPos_recursive(chain);
+   KDL::ChainFkSolverPos_recursive fksolver = KDL::ChainFkSolverPos_recursive(kdl_chain);
 
    // ChainFkSolverPos_recursive fksolver = ChainFkSolverPos_recursive(chain);
+	KDL::JntArray kdl_joints = KDL::JntArray(kdl_chain.getNrOfJoints());
+	KDL::Frame kdl_pose;
+	fksolver.JntToCart(kdl_joints, kdl_pose);
 
 
    //subscribing robot joint angles from gazebo= 
