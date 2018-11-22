@@ -7,6 +7,11 @@
 #include <kdl/chain.hpp>
 #include <kdl/chainfksolver.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainiksolverpos_nr.hpp>
+
+//#include <kdl/chainjnttojacdotsolver.hh>
+
 #include <sensor_msgs/JointState.h>
 
 //#include <tree.hpp>
@@ -46,7 +51,7 @@ int main(int argc, char** argv)
       ROS_ERROR("Failed to construct kdl chain");
       return false;
    }
-
+   ROS_INFO(" chain constructed \n");
    //fk solver= 
    KDL::ChainFkSolverPos_recursive fksolver = KDL::ChainFkSolverPos_recursive(kdl_chain);
 
@@ -55,12 +60,71 @@ int main(int argc, char** argv)
 	KDL::Frame kdl_pose;
 	fksolver.JntToCart(kdl_joints, kdl_pose);
 
+      ROS_INFO(" fksolver constructed \n");
+
+   KDL::Chain kdl_chain_wheel_fl;
+   KDL::Chain kdl_chain_wheel_fr;
+   KDL::Chain kdl_chain_wheel_rl;
+   KDL::Chain kdl_chain_wheel_rr;
+   if (!my_tree.getChain("base_link", "wheel_front_left", kdl_chain_wheel_fl)){
+      ROS_ERROR("Failed to construct kdl_chain_wheel_fl");
+      return false;
+   }
+   ROS_INFO(" chain constructed \n");
+   if (!my_tree.getChain("base_link", "wheel_front_right", kdl_chain_wheel_fr)){
+      ROS_ERROR("Failed to construct kdl_chain_wheel_fr ");
+      return false;
+   }
+   ROS_INFO(" chain constructed \n");
+   if (!my_tree.getChain("base_link", "wheel_rear_right", kdl_chain_wheel_rl)){
+      ROS_ERROR("Failed to construct kdl_chain_wheel_rl");
+      return false;
+   }
+   ROS_INFO(" chain constructed \n");
+   if (!my_tree.getChain("base_link", "wheel_rear_right", kdl_chain_wheel_rr)){
+      ROS_ERROR("Failed to construct kdl_chain_wheel_rr");
+      return false;
+   }
+   ROS_INFO(" chain constructed \n");
 
    //subscribing robot joint angles from gazebo= 
    const sensor_msgs::JointStateConstPtr initJoints = ros::topic::waitForMessage<sensor_msgs::JointState>("/walking_excavator/joint_states", nh);
 
    ROS_INFO("Joint States published");
    ROS_INFO("length of joint states %d", initJoints->name.size()); 
+
+   
+
+    KDL::ChainFkSolverPos_recursive fk_solver(kdl_chain);
+    KDL::ChainIkSolverVel_pinv ik_solver_vel(kdl_chain);
+    KDL::ChainIkSolverPos_NR ik_solver(kdl_chain, fk_solver,
+            ik_solver_vel, 1000, 100); //max 100 iterations and stop by an accuracy of 1e-6
+
+    KDL::JntArray q_init(kdl_chain.getNrOfJoints());
+    KDL::JntArray q_out(kdl_chain.getNrOfJoints());
+
+    //q_init(1,0) = 0.0;
+    //q_init(1,1) = 0.0;
+    //q_init(1,2) = 0.0;
+
+    KDL::Frame dest_frame(KDL::Vector(0.0, 2.0, 0.0));
+
+    if (ik_solver.CartToJnt(q_init, dest_frame, q_out) < 0) {
+        ROS_ERROR( "Something really bad happened. You are in trouble now");
+        return -1;
+    } else {
+        // parse output of ik_solver to the robot
+
+        for (unsigned int j = 0; j < q_out.rows(); j++) {
+            std::cout << q_out(1, j) * 180 / 3.14 << "  "<<j<< "|";
+        }
+        std::cout << std::endl;
+    }
+    KDL::ChainJntToJacSolver jac_menzi_manipulator = KDL::ChainJntToJacSolver(kdl_chain); //works jacobian -- but how to use
+        KDL::ChainJntToJacSolver jac_menzi_wheel_fl = KDL::ChainJntToJacSolver(kdl_chain_wheel_fl); 
+        KDL::ChainJntToJacSolver jac_menzi_wheel_fr = KDL::ChainJntToJacSolver(kdl_chain_wheel_fr); 
+        KDL::ChainJntToJacSolver jac_menzi_wheel_rl = KDL::ChainJntToJacSolver(kdl_chain_wheel_rl); 
+        KDL::ChainJntToJacSolver jac_menzi_wheel_rr = KDL::ChainJntToJacSolver(kdl_chain_wheel_rr); 
 
 
 }
